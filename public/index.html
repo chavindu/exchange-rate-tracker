@@ -167,13 +167,16 @@ async function loadManifest(){
     manifest = ['USD','GBP'];
   }
   renderCurrencyList();
+  // Load data for all currencies to show last values
+  await ensureData(manifest);
+  // Update last values for all currencies
+  updateAllLastValues();
   // default select first two
   selected = manifest.slice(0,2);
   selected.forEach(code => {
     const el = document.querySelector('[data-code="'+code+'"]');
     if(el) el.classList.add('active');
   });
-  await ensureData(selected);
   updateAll();
 }
 
@@ -194,9 +197,15 @@ async function ensureData(codes){
     if(!dataCache[code]){
       try{
         const r = await fetch(`data/${code.toLowerCase()}.json`);
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
         const arr = await r.json();
-        dataCache[code] = arr.map(x=>({date:x.date,value:parseNum(x.value)}));
+        // Handle both array format and ensure it's an array
+        const dataArray = Array.isArray(arr) ? arr : [];
+        dataCache[code] = dataArray
+          .filter(x => x && x.date && x.value != null)
+          .map(x=>({date:x.date,value:parseNum(x.value)}));
       }catch(e){
+        console.warn(`Failed to load data for ${code}:`, e);
         dataCache[code] = [];
       }
     }
@@ -211,7 +220,10 @@ function toggleCode(code, el){
     selected.push(code);
     el.classList.add('active');
   }
-  ensureData([code]).then(()=>updateAll());
+  ensureData([code]).then(()=>{
+    updateAllLastValues();
+    updateAll();
+  });
 }
 
 function getRange(arr, days, view){
@@ -246,18 +258,41 @@ function computeStats(arr){
 function buildDatasets(days, view){
   const labelsSet = new Set();
   const series = [];
-  selected.forEach(code=>{
+  // Only process selected currencies that have data
+  const selectedWithData = selected.filter(code => {
+    const arr = dataCache[code] || [];
+    return arr.length > 0;
+  });
+  
+  selectedWithData.forEach(code=>{
     const arr = getRange(dataCache[code]||[], days, view);
     arr.forEach(r=>labelsSet.add(r.date));
   });
   const labels = Array.from(labelsSet).sort();
-  selected.forEach(code=>{
+  
+  selectedWithData.forEach(code=>{
     const arr = getRange(dataCache[code]||[], days, view);
     const map = new Map(arr.map(x=>[x.date,x.value]));
     const data = labels.map(d => map.has(d) ? map.get(d) : null);
     series.push({label:code,data,tension:0.25,borderWidth:2,spanGaps:true});
   });
+  
+  // If no data available, return empty structure
+  if(labels.length === 0){
+    return {labels: [], series: []};
+  }
+  
   return {labels,series};
+}
+
+// Update last values for all currencies in the list
+function updateAllLastValues(){
+  manifest.forEach(code=>{
+    const arr = dataCache[code] || [];
+    const last = arr.length ? arr[arr.length-1].value : null;
+    const lastEl = document.getElementById('last-'+code);
+    if(lastEl) lastEl.textContent = last!=null?fmt(last):'—';
+  });
 }
 
 function updateStats(days, view){
@@ -289,6 +324,25 @@ function updateStats(days, view){
 
 function createChart(labels, series){
   if(chart) chart.destroy();
+  
+  // Handle empty data case
+  if(!labels || labels.length === 0 || !series || series.length === 0){
+    chart = new Chart(ctx, {
+      type:'line',
+      data:{labels: [], datasets: []},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{enabled:false}
+        },
+        scales:{x:{display:false}, y:{display:false}}
+      }
+    });
+    return;
+  }
+  
   chart = new Chart(ctx, {
     type:'line',
     data:{labels, datasets: series.map(s=>({...s}))},
