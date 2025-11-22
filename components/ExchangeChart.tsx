@@ -13,7 +13,7 @@ import {
 } from 'chart.js'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import { Line } from 'react-chartjs-2'
-import { RateData } from '@/types'
+import { RateData, RateType } from '@/types'
 import { useTheme } from 'next-themes'
 
 ChartJS.register(
@@ -33,10 +33,19 @@ interface ExchangeChartProps {
   data: { [key: string]: RateData[] }
   days: number
   view: 'days' | 'monthly'
+  rateType: RateType
 }
 
-export function ExchangeChart({ selected, data, days, view }: ExchangeChartProps) {
+export function ExchangeChart({ selected, data, days, view, rateType }: ExchangeChartProps) {
   const { theme } = useTheme()
+
+  // Get the value for the selected rate type, with fallback to legacy 'value' field
+  const getRateValue = (data: RateData, type: RateType): number | string | null => {
+    if (data[type] != null) return data[type]!
+    // Legacy support for old data format
+    if (data.value != null) return data.value
+    return null
+  }
 
   const fmt = (n: number) => {
     return (Math.round(n * 1000) / 1000).toLocaleString('en-US')
@@ -54,14 +63,17 @@ export function ExchangeChart({ selected, data, days, view }: ExchangeChartProps
       arr.forEach((it) => {
         const m = it.date.slice(0, 7)
         if (!map[m]) map[m] = []
-        map[m].push(parseNum(it.value))
+        const rateValue = getRateValue(it, rateType)
+        if (rateValue != null) {
+          map[m].push(parseNum(rateValue))
+        }
       })
       const out = Object.keys(map)
         .sort()
         .map((k) => {
           const v = map[k]
           const avg = v.reduce((a, b) => a + b, 0) / v.length
-          return { date: k + '-01', value: avg }
+          return { date: k + '-01', [rateType]: avg } as RateData
         })
       return out.slice(-days)
     } else {
@@ -101,7 +113,10 @@ export function ExchangeChart({ selected, data, days, view }: ExchangeChartProps
 
     selectedWithData.forEach((code, i) => {
       const arr = getRange(data[code] || [], days, view)
-      const map = new Map(arr.map((x) => [x.date, parseNum(x.value)]))
+      const map = new Map(arr.map((x) => {
+        const rateValue = getRateValue(x, rateType)
+        return [x.date, rateValue != null ? parseNum(rateValue) : null]
+      }))
       const chartData = labels.map((d) => (map.has(d) ? map.get(d) : null))
 
       series.push({

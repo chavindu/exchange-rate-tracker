@@ -1,7 +1,13 @@
 export interface RateData {
   date: string
-  value: number | string
+  TTBUY?: number | string
+  ODBUY?: number | string
+  TTSEL?: number | string
+  // Legacy support for old data format
+  value?: number | string
 }
+
+export type RateType = 'TTBUY' | 'ODBUY' | 'TTSEL'
 
 export interface CurrencyData {
   [key: string]: RateData[]

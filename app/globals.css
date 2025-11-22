@@ -42,27 +42,22 @@ body {
 }
 
 body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  background-image: url('/img/bg-img.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 [data-theme='dark'] body {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #1e293b 50%, #0f172a 75%, #1e1b4b 100%);
-  background-size: 400% 400%;
+  background-image: url('/img/bg-img.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  filter: brightness(0.7) contrast(1.1);
 }
 
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
 
 .app {
   margin: 0;
@@ -583,6 +578,14 @@ body {
 }
 
 @media (max-width: 480px) {
+  body {
+    background-position: bottom right;
+  }
+
+  [data-theme='dark'] body {
+    background-position: bottom right;
+  }
+
   .app {
     padding: 12px;
   }

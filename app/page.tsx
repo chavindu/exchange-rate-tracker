@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { CurrencyList } from '@/components/CurrencyList'
 import { StatsCards } from '@/components/StatsCards'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { RateData } from '@/types'
+import { RateData, RateType } from '@/types'
 
 // Dynamically import Chart component to avoid SSR issues
 const ExchangeChart = dynamic(() => import('@/components/ExchangeChart').then(mod => ({ default: mod.ExchangeChart })), {
@@ -28,11 +28,20 @@ export default function Home() {
   const [selected, setSelected] = useState<string[]>([])
   const [days, setDays] = useState(14)
   const [view, setView] = useState<'days' | 'monthly'>('days')
+  const [rateType, setRateType] = useState<RateType>('TTBUY')
   const [lastValues, setLastValues] = useState<{ [key: string]: number | null }>({})
 
   const parseNum = (v: number | string) => {
     if (typeof v === 'string') return parseFloat(v.replace(/,/g, ''))
     return Number(v)
+  }
+
+  // Get the value for the selected rate type, with fallback to legacy 'value' field
+  const getRateValue = (data: RateData, type: RateType): number | string | null => {
+    if (data[type] != null) return data[type]!
+    // Legacy support for old data format
+    if (data.value != null) return data.value
+    return null
   }
 
   const fmt = (n: number | null) => {
@@ -49,8 +58,15 @@ export default function Home() {
           const arr = await r.json()
           const dataArray = Array.isArray(arr) ? arr : []
           const processed = dataArray
-            .filter((x: any) => x && x.date && x.value != null)
-            .map((x: any) => ({ date: x.date, value: parseNum(x.value) }))
+            .filter((x: any) => x && x.date && (x.TTBUY != null || x.ODBUY != null || x.TTSEL != null || x.value != null))
+            .map((x: any) => ({
+              date: x.date,
+              TTBUY: x.TTBUY != null ? parseNum(x.TTBUY) : undefined,
+              ODBUY: x.ODBUY != null ? parseNum(x.ODBUY) : undefined,
+              TTSEL: x.TTSEL != null ? parseNum(x.TTSEL) : undefined,
+              // Legacy support
+              value: x.value != null ? parseNum(x.value) : undefined
+            }))
           return { code, data: processed }
         } catch (e) {
           console.warn(`Failed to load data for ${code}:`, e)
@@ -77,8 +93,12 @@ export default function Home() {
     const values: { [key: string]: number | null } = {}
     codes.forEach((code) => {
       const arr = dataCache[code] || []
-      const last = arr.length ? parseNum(arr[arr.length - 1].value) : null
-      values[code] = last
+      if (arr.length > 0) {
+        const rateValue = getRateValue(arr[arr.length - 1], rateType)
+        values[code] = rateValue != null ? parseNum(rateValue) : null
+      } else {
+        values[code] = null
+      }
     })
     setLastValues((prev) => ({ ...prev, ...values }))
   }
@@ -128,21 +148,24 @@ export default function Home() {
       return
     }
 
-    const getRange = (arr: RateData[], days: number, view: string): RateData[] => {
+    const getRange = (arr: RateData[], days: number, view: string, type: RateType): RateData[] => {
       if (!arr) return []
       if (view === 'monthly') {
         const map: { [key: string]: number[] } = {}
         arr.forEach((it) => {
           const m = it.date.slice(0, 7)
           if (!map[m]) map[m] = []
-          map[m].push(parseNum(it.value))
+          const rateValue = getRateValue(it, type)
+          if (rateValue != null) {
+            map[m].push(parseNum(rateValue))
+          }
         })
         const out = Object.keys(map)
           .sort()
           .map((k) => {
             const v = map[k]
             const avg = v.reduce((a, b) => a + b, 0) / v.length
-            return { date: k + '-01', value: avg }
+            return { date: k + '-01', [type]: avg } as RateData
           })
         return out.slice(-days)
       } else {
@@ -152,7 +175,7 @@ export default function Home() {
 
     const labelsSet = new Set<string>()
     selectedWithData.forEach((code) => {
-      const arr = getRange(dataCache[code] || [], days, view)
+      const arr = getRange(dataCache[code] || [], days, view, rateType)
       arr.forEach((r) => labelsSet.add(r.date))
     })
     const labels = Array.from(labelsSet).sort()
@@ -161,8 +184,11 @@ export default function Home() {
     labels.forEach((label) => {
       const row: (string | number)[] = [label]
       selectedWithData.forEach((code) => {
-        const arr = getRange(dataCache[code] || [], days, view)
-        const map = new Map(arr.map((x) => [x.date, parseNum(x.value)]))
+        const arr = getRange(dataCache[code] || [], days, view, rateType)
+        const map = new Map(arr.map((x) => {
+          const rateValue = getRateValue(x, rateType)
+          return [x.date, rateValue != null ? parseNum(rateValue) : null]
+        }))
         row.push(map.has(label) ? map.get(label)! : '')
       })
       rows.push(row)
@@ -193,7 +219,7 @@ export default function Home() {
     if (selected.length > 0) {
       updateAllLastValues(manifest)
     }
-  }, [dataCache, selected])
+  }, [dataCache, selected, rateType])
 
   return (
     <div className="app">
@@ -204,17 +230,6 @@ export default function Home() {
           </div>
           <div>
             <div className="title">Exchange Rate Dashboard</div>
-            <div className="sub">
-              TTBUY history — data source:{' '}
-              <a
-                className="link"
-                href="https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates"
-                target="_blank"
-                rel="noopener"
-              >
-                Sampath Bank — Exchange Rates
-              </a>
-            </div>
           </div>
         </div>
 
@@ -247,6 +262,21 @@ export default function Home() {
               <option value="monthly">Monthly</option>
             </select>
           </div>
+          <div className="controlGroup">
+            <label className="small" htmlFor="rateTypeSelect">
+              Rate Type
+            </label>
+            <select
+              id="rateTypeSelect"
+              className="input"
+              value={rateType}
+              onChange={(e) => setRateType(e.target.value as RateType)}
+            >
+              <option value="TTBUY">T/T Buying</option>
+              <option value="ODBUY">O/D Buying</option>
+              <option value="TTSEL">T/T Selling</option>
+            </select>
+          </div>
           <button className="btn" onClick={exportCSV}>
             Export CSV
           </button>
@@ -256,7 +286,7 @@ export default function Home() {
 
       <div className="grid">
         <div className="side">
-          <CurrencyList currencies={manifest} selected={selected} onToggle={toggleCode} lastValues={lastValues} />
+          <CurrencyList currencies={manifest} selected={selected} onToggle={toggleCode} lastValues={lastValues} rateType={rateType} />
 
           <div className="legend">
             <div className="legendTitle">Legend</div>
@@ -266,8 +296,8 @@ export default function Home() {
 
         <div className="main">
           <div className="mainContent">
-            <ExchangeChart selected={selected} data={dataCache} days={days} view={view} />
-            <StatsCards selected={selected} data={dataCache} days={days} view={view} />
+            <ExchangeChart selected={selected} data={dataCache} days={days} view={view} rateType={rateType} />
+            <StatsCards selected={selected} data={dataCache} days={days} view={view} rateType={rateType} />
           </div>
 
           <div className="footer">

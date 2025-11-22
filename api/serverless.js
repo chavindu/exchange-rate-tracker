@@ -112,7 +112,9 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const rate = currencyData.TTBUY;
+      const ttbuy = currencyData.TTBUY;
+      const odbuy = currencyData.ODBUY;
+      const ttsel = currencyData.TTSEL;
       const filePath = `public/data/${currencyCode.toLowerCase()}.json`;
 
       // Load existing file or create new one
@@ -127,12 +129,17 @@ export default async function handler(req, res) {
 
       // Check if today's entry already exists
       if (!fileData.json.find(e => e.date === today)) {
-        fileData.json.push({ date: today, value: rate });
+        fileData.json.push({ 
+          date: today, 
+          TTBUY: ttbuy,
+          ODBUY: odbuy,
+          TTSEL: ttsel
+        });
         
         // Update file on GitHub
         await updateFile(filePath, fileData.json, fileData.sha);
-        console.log(`Updated ${currencyCode}: ${rate}`);
-        results.push({ currency: currencyCode, success: true, rate });
+        console.log(`Updated ${currencyCode}: TTBUY=${ttbuy}, ODBUY=${odbuy}, TTSEL=${ttsel}`);
+        results.push({ currency: currencyCode, success: true, ttbuy, odbuy, ttsel });
       } else {
         console.log(`${currencyCode} already has entry for ${today}`);
         results.push({ currency: currencyCode, success: true, skipped: true });
