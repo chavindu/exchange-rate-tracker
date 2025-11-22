@@ -53,9 +53,6 @@ export default async function handler(req, res) {
   const json = JSON.parse(text);
   const data = json.data;
 
-  const usd = data.find(x => x.CurrCode === "USD").TTBUY;
-  const gbp = data.find(x => x.CurrCode === "GBP").TTBUY;
-
   const today = new Date().toISOString().split("T")[0];
 
   // Load GitHub file
@@ -70,9 +67,20 @@ export default async function handler(req, res) {
     };
   }
 
-  // Update file
+  // Update or create file
   async function updateFile(path, history, sha) {
     const content = Buffer.from(JSON.stringify(history, null, 4)).toString("base64");
+
+    const body = {
+      message: `Daily update ${path} (${today})`,
+      content,
+      branch
+    };
+
+    // Only include sha if file exists (for updates)
+    if (sha) {
+      body.sha = sha;
+    }
 
     await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
       method: "PUT",
@@ -80,31 +88,67 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        message: `Daily update ${path} (${today})`,
-        content,
-        sha,
-        branch
-      })
+      body: JSON.stringify(body)
     });
   }
 
-  // Update USD
-  const usdFile = await loadFile("public/data/usd.json");
-  if (!usdFile.json.find(e => e.date === today)) {
-    usdFile.json.push({ date: today, value: usd });
-    await updateFile("public/data/usd.json", usdFile.json, usdFile.sha);
+  // Load manifest to get list of currencies to track
+  let manifest = ["USD", "GBP"]; // fallback
+  try {
+    const manifestFile = await loadFile("public/data/manifest.json");
+    manifest = manifestFile.json;
+    console.log(`Loaded manifest with ${manifest.length} currencies: ${manifest.join(", ")}`);
+  } catch (e) {
+    console.warn("Failed to load manifest.json, using default currencies (USD, GBP)", e);
   }
 
-  // Update GBP
-  const gbpFile = await loadFile("public/data/gbp.json");
-  if (!gbpFile.json.find(e => e.date === today)) {
-    gbpFile.json.push({ date: today, value: gbp });
-    await updateFile("public/data/gbp.json", gbpFile.json, gbpFile.sha);
+  // Update all currencies from manifest
+  const results = [];
+  for (const currencyCode of manifest) {
+    try {
+      const currencyData = data.find(x => x.CurrCode === currencyCode);
+      if (!currencyData) {
+        console.warn(`Currency ${currencyCode} not found in API response`);
+        continue;
+      }
+
+      const rate = currencyData.TTBUY;
+      const filePath = `public/data/${currencyCode.toLowerCase()}.json`;
+
+      // Load existing file or create new one
+      let fileData;
+      try {
+        fileData = await loadFile(filePath);
+      } catch (e) {
+        // File doesn't exist, create new one
+        console.log(`Creating new file for ${currencyCode}`);
+        fileData = { sha: null, json: [] };
+      }
+
+      // Check if today's entry already exists
+      if (!fileData.json.find(e => e.date === today)) {
+        fileData.json.push({ date: today, value: rate });
+        
+        // Update file on GitHub
+        await updateFile(filePath, fileData.json, fileData.sha);
+        console.log(`Updated ${currencyCode}: ${rate}`);
+        results.push({ currency: currencyCode, success: true, rate });
+      } else {
+        console.log(`${currencyCode} already has entry for ${today}`);
+        results.push({ currency: currencyCode, success: true, skipped: true });
+      }
+    } catch (e) {
+      console.error(`Error updating ${currencyCode}:`, e);
+      results.push({ currency: currencyCode, success: false, error: e.message });
+    }
   }
 
   return res.json({
     success: true,
-    serverIP
+    serverIP,
+    currenciesUpdated: results.filter(r => r.success && !r.skipped).length,
+    currenciesSkipped: results.filter(r => r.skipped).length,
+    currenciesFailed: results.filter(r => !r.success).length,
+    results
   });
 }

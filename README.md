@@ -4,9 +4,9 @@ A web application that tracks TTBUY (Telegraphic Transfer Buying) exchange rates
 
 ## Features
 
-- **Daily Rate Tracking**: Automatically fetches USD and GBP exchange rates daily via Vercel cron job
+- **Daily Rate Tracking**: Automatically fetches all exchange rates listed in manifest.json daily via Vercel cron job
 - **Interactive Dashboard**: Beautiful web interface with Chart.js visualizations
-- **Multiple Currency Support**: Frontend supports viewing multiple currencies (USD, GBP, EUR, JPY, AUD, NZD, SGD, HKD, CNY, AED, INR)
+- **Multiple Currency Support**: Tracks and displays all currencies defined in manifest.json (USD, GBP, EUR, JPY, AUD, NZD, SGD, HKD, CNY, AED, INR)
 - **Historical Data**: Stores daily exchange rates in JSON format with date-based tracking
 - **Statistics**: Displays min, max, average, and percentage change for selected currencies
 - **Data Export**: Export chart data as CSV
@@ -87,10 +87,11 @@ vercel deploy
 ## How It Works
 
 1. **Daily Cron Job**: Vercel triggers the serverless function daily at 00:00 UTC
-2. **Rate Fetching**: The function fetches current exchange rates from Sampath Bank API
-3. **Data Update**: If today's rate doesn't exist, it appends the new rate to the respective JSON file
-4. **GitHub Sync**: Updates are committed directly to the GitHub repository
-5. **Dashboard**: The frontend reads JSON files and displays interactive charts
+2. **Manifest Loading**: The function loads `public/data/manifest.json` to determine which currencies to track
+3. **Rate Fetching**: The function fetches current exchange rates from Sampath Bank API
+4. **Data Update**: For each currency in the manifest, if today's rate doesn't exist, it appends the new rate to the respective JSON file
+5. **GitHub Sync**: Updates are committed directly to the GitHub repository (creates new files if they don't exist)
+6. **Dashboard**: The frontend reads JSON files and displays interactive charts for all available currencies
 
 ## Technologies Used
 
