@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -38,7 +37,6 @@ interface ExchangeChartProps {
 
 export function ExchangeChart({ selected, data, days, view }: ExchangeChartProps) {
   const { theme } = useTheme()
-  const chartRef = useRef<ChartJS>(null)
 
   const fmt = (n: number) => {
     return (Math.round(n * 1000) / 1000).toLocaleString('en-US')
@@ -217,7 +215,7 @@ export function ExchangeChart({ selected, data, days, view }: ExchangeChartProps
 
   return (
     <div className="chartwrap">
-      <Line ref={chartRef} data={chartData} options={options} />
+      <Line data={chartData} options={options} />
     </div>
   )
 }
