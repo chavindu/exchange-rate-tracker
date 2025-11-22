@@ -1,11 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { CurrencyList } from '@/components/CurrencyList'
-import { ExchangeChart } from '@/components/ExchangeChart'
 import { StatsCards } from '@/components/StatsCards'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { RateData } from '@/types'
+
+// Dynamically import Chart component to avoid SSR issues
+const ExchangeChart = dynamic(() => import('@/components/ExchangeChart').then(mod => ({ default: mod.ExchangeChart })), {
+  ssr: false,
+  loading: () => (
+    <div className="chartwrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="small" style={{ color: 'var(--muted)' }}>
+        Loading chart...
+      </div>
+    </div>
+  ),
+})
 
 const manifestPath = '/data/manifest.json'
 const maxPoints = 365

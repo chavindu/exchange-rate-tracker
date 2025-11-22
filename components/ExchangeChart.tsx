@@ -151,7 +151,7 @@ export function ExchangeChart({ selected, data, days, view }: ExchangeChartProps
         labels: {
           usePointStyle: true,
           padding: 15,
-          font: { size: 12, weight: '500' as const },
+          font: { size: 12, weight: 500 },
           color: isDark ? '#f1f5f9' : '#00134D',
         },
       },
