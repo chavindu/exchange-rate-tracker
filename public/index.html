@@ -1,65 +1,339 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <title>Exchange Rate Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: Arial; padding: 20px; }
-        #rangeInput { width: 80px; }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Exchange Rate Tracker — Dashboard</title>
+
+<!-- Chart.js + Zoom plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f6f9fc; --fg:#001326; --card:#ffffff; --muted:#6b7280;
+  }
+  .bitlab-custom-class-dark {
+    --bg:#0b1220; --fg:#e6eef8; --card:#07101a; --muted:#9aa8bf;
+  }
+
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:Inter,Arial,sans-serif}
+  .bitlab-custom-class-container{max-width:1100px;margin:24px auto;padding:18px}
+  .bitlab-custom-class-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .bitlab-custom-class-title{font-size:20px;font-weight:600}
+  .bitlab-custom-class-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .bitlab-custom-class-card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+  .bitlab-custom-class-row{display:flex;gap:10px;align-items:center}
+  .bitlab-custom-class-input{padding:6px 8px;border-radius:6px;border:1px solid #ddd}
+  .bitlab-custom-class-small{font-size:13px;color:var(--muted)}
+  .bitlab-custom-class-stats{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .bitlab-custom-class-stat{padding:8px;border-radius:8px;background:rgba(0,0,0,0.03);min-width:120px}
+  .bitlab-custom-class-currencies{display:flex;gap:8px;flex-wrap:wrap}
+  .bitlab-custom-class-currency{padding:6px 8px;border-radius:6px;border:1px solid #e6eef8;cursor:pointer}
+  .bitlab-custom-class-active{background:#0b74ff;color:white;border-color:#0b74ff}
+  .bitlab-custom-class-footer{margin-top:18px;display:flex;justify-content:space-between;align-items:center}
+  .bitlab-custom-class-btn{padding:6px 10px;border-radius:6px;border:0;background:#0b74ff;color:white;cursor:pointer}
+  .bitlab-custom-class-smallmuted{font-size:13px;color:var(--muted)}
+  a{color:inherit}
+  /* responsive */
+  @media (max-width:720px){
+    .bitlab-custom-class-stats{flex-direction:column}
+  }
+</style>
 </head>
 <body>
 
-<h2>USD / GBP – TTBUY Trend</h2>
+<div id="app" class="bitlab-custom-class-container">
+  <div class="bitlab-custom-class-header">
+    <div>
+      <div class="bitlab-custom-class-title">Exchange Rate Dashboard</div>
+      <div class="bitlab-custom-class-small">TTBUY historical chart — default 14 days</div>
+    </div>
 
-<label>Show last (days):</label>
-<input type="number" id="rangeInput" value="14" min="1" max="365">
-<button onclick="loadChart()">Update</button>
+    <div class="bitlab-custom-class-controls">
+      <label class="bitlab-custom-class-smallmuted">Days:</label>
+      <input id="daysInput" class="bitlab-custom-class-input" type="number" min="1" max="365" value="14" style="width:80px">
 
-<canvas id="chart" width="600" height="300"></canvas>
+      <label class="bitlab-custom-class-smallmuted">View:</label>
+      <select id="viewSelect" class="bitlab-custom-class-input">
+        <option value="days">Last N days</option>
+        <option value="monthly">Monthly</option>
+      </select>
+
+      <button id="exportCsv" class="bitlab-custom-class-btn">Export CSV</button>
+      <button id="darkToggle" class="bitlab-custom-class-input">Dark</button>
+    </div>
+  </div>
+
+  <div class="bitlab-custom-class-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div class="bitlab-custom-class-small">Currencies</div>
+        <div id="currencies" class="bitlab-custom-class-currencies" style="margin-top:8px"></div>
+      </div>
+
+      <div style="flex:1;margin-left:12px">
+        <canvas id="rateChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="bitlab-custom-class-stats" id="statsArea" style="margin-top:12px"></div>
+
+    <div class="bitlab-custom-class-footer">
+      <div class="bitlab-custom-class-smallmuted">Trend: <span id="trendSummary">—</span></div>
+      <div class="bitlab-custom-class-smallmuted">Data source: public/data/*.json</div>
+    </div>
+  </div>
+</div>
 
 <script>
-async function loadJSON(currency) {
-    const res = await fetch(`data/${currency}.json?cache=${Math.random()}`);
-    return await res.json();
+/*
+  Expected manifest file:
+  public/data/manifest.json
+  Example:
+  ["USD","GBP","EUR"]
+  Each currency must have a JSON file at public/data/<code>.json with entries:
+  [{ "date":"2025-11-01", "value":"304.5" }, ...]
+*/
+
+const ctx = document.getElementById('rateChart').getContext('2d');
+let chart;
+
+// config
+const maxPoints = 365;
+const manifestPath = 'data/manifest.json';
+
+// DOM
+const currenciesEl = document.getElementById('currencies');
+const daysInput = document.getElementById('daysInput');
+const exportCsvBtn = document.getElementById('exportCsv');
+const viewSelect = document.getElementById('viewSelect');
+const darkToggle = document.getElementById('darkToggle');
+const statsArea = document.getElementById('statsArea');
+const trendSummary = document.getElementById('trendSummary');
+
+let manifest = [];
+let dataCache = {}; // code -> array
+let selected = []; // selected currencies
+
+// util
+function parseNum(v){ return (typeof v === 'string') ? parseFloat(v.replace(/,/g,'')) : Number(v); }
+function formatNum(n){ return (Math.round(n*1000)/1000).toString(); }
+function signArrow(curr, arr){
+  if(arr.length < 2) return '→';
+  const last = parseNum(arr[arr.length-1].value);
+  const prev = parseNum(arr[arr.length-2].value);
+  if (last > prev) return '↑';
+  if (last < prev) return '↓';
+  return '→';
+}
+function pctChange(prev, last){
+  if(prev === 0) return 0;
+  return ((last - prev) / prev) * 100;
 }
 
-async function loadChart() {
-    const days = parseInt(document.getElementById("rangeInput").value);
+async function loadManifest(){
+  try{
+    const r = await fetch(manifestPath);
+    manifest = await r.json();
+  }catch(e){
+    // fallback if manifest missing: default USD/GBP
+    manifest = ['USD','GBP'];
+  }
+  // create UI
+  currenciesEl.innerHTML = '';
+  manifest.forEach(code=>{
+    const btn = document.createElement('button');
+    btn.className = 'bitlab-custom-class-currency bitlab-custom-class-input';
+    btn.textContent = code;
+    btn.onclick = ()=> toggleCurrency(code, btn);
+    currenciesEl.appendChild(btn);
+  });
+  // default select first two
+  selected = manifest.slice(0,2);
+  // mark active
+  Array.from(currenciesEl.children).forEach(b=>{
+    if(selected.includes(b.textContent)) b.classList.add('bitlab-custom-class-active');
+  });
+  await ensureLoadSelected();
+  updateChart();
+}
 
-    const usd = await loadJSON("usd");
-    const gbp = await loadJSON("gbp");
+async function ensureLoadSelected(){
+  const promises = selected.map(async code=>{
+    if(!dataCache[code]){
+      try{
+        const r = await fetch(`data/${code.toLowerCase()}.json`);
+        const arr = await r.json();
+        // normalize: ensure `date` and numeric `value` fields
+        dataCache[code] = arr.map(x=>({date:x.date, value: parseNum(x.value)}));
+      }catch(e){
+        dataCache[code] = [];
+      }
+    }
+  });
+  await Promise.all(promises);
+}
 
-    const filteredUSD = usd.slice(-days);
-    const filteredGBP = gbp.slice(-days);
+function toggleCurrency(code, btn){
+  if(selected.includes(code)){
+    selected = selected.filter(c=>c!==code);
+    btn.classList.remove('bitlab-custom-class-active');
+  } else {
+    selected.push(code);
+    btn.classList.add('bitlab-custom-class-active');
+  }
+  ensureLoadSelected().then(()=>updateChart());
+}
 
-    const labels = filteredUSD.map(x => x.date);
-
-    const ctx = document.getElementById("chart").getContext("2d");
-    if (window.chartInstance) window.chartInstance.destroy();
-
-    window.chartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: "USD TTBUY",
-                    data: filteredUSD.map(x => x.value),
-                    borderWidth: 2
-                },
-                {
-                    label: "GBP TTBUY",
-                    data: filteredGBP.map(x => x.value),
-                    borderWidth: 2
-                }
-            ]
-        }
+function getRangeData(arr, days, view){
+  if(!arr || arr.length===0) return [];
+  if(view === 'monthly'){
+    // group by YYYY-MM
+    const map = {};
+    arr.forEach(x=>{
+      const m = x.date.slice(0,7);
+      if(!map[m]) map[m]=[];
+      map[m].push(x);
     });
+    const out = Object.keys(map).sort().map(k=>{
+      const values = map[k].map(v=>v.value);
+      const avg = values.reduce((a,b)=>a+b,0)/values.length;
+      return { date: k + '-01', value: avg };
+    });
+    return out.slice(-days);
+  } else {
+    return arr.slice(-days);
+  }
 }
 
-loadChart();
-</script>
+function computeStats(arr){
+  if(!arr || arr.length===0) return null;
+  const values = arr.map(x=>x.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const avg = values.reduce((a,b)=>a+b,0)/values.length;
+  return { min, max, avg };
+}
 
+function buildDatasets(days, view){
+  const labelsSet = new Set();
+  const series = [];
+
+  selected.forEach(code=>{
+    const arr = getRangeData(dataCache[code]||[], days, view);
+    arr.forEach(r=>labelsSet.add(r.date));
+  });
+
+  const labels = Array.from(labelsSet).sort();
+  selected.forEach((code, idx)=>{
+    const arr = getRangeData(dataCache[code]||[], days, view);
+    const map = new Map(arr.map(x=>[x.date, x.value]));
+    const data = labels.map(d => map.has(d) ? map.get(d) : null);
+    series.push({
+      label: code,
+      data,
+      borderWidth: 2,
+      tension: 0.2,
+      spanGaps: true
+    });
+  });
+
+  return { labels, series };
+}
+
+function updateStats(days, view){
+  statsArea.innerHTML = '';
+  const parts = [];
+  selected.forEach(code=>{
+    const arr = getRangeData(dataCache[code]||[], days, view);
+    const s = computeStats(arr);
+    const arrow = signArrow(code, arr);
+    const last = arr.length ? arr[arr.length-1].value : null;
+    const prev = arr.length>1 ? arr[arr.length-2].value : null;
+    const change = (last != null && prev != null) ? pctChange(prev,last) : null;
+
+    const statEl = document.createElement('div');
+    statEl.className = 'bitlab-custom-class-stat bitlab-custom-class-card';
+    statEl.innerHTML = `<div style="font-weight:600">${code} ${arrow}</div>
+      <div class="bitlab-custom-class-small">Min: ${s?formatNum(s.min):'—'}</div>
+      <div class="bitlab-custom-class-small">Max: ${s?formatNum(s.max):'—'}</div>
+      <div class="bitlab-custom-class-small">Avg: ${s?formatNum(s.avg):'—'}</div>
+      <div class="bitlab-custom-class-small">Δ: ${change!=null?change.toFixed(2)+'%':'—'}</div>
+    `;
+    statsArea.appendChild(statEl);
+
+    // also add to summary
+    parts.push(`${code}: ${arrow} ${change!=null?change.toFixed(2)+'%':'—'}`);
+  });
+  trendSummary.textContent = parts.join(' | ');
+}
+
+function createChart(labels, datasets){
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        zoom:{
+          pan:{enabled:true,mode:'x'},
+          zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x'}
+        },
+        legend:{ position:'top' }
+      },
+      interaction:{ mode: 'index', intersect: false },
+      scales:{ x:{ display:true }, y:{ display:true } }
+    }
+  });
+}
+
+function updateChart(){
+  const days = Math.min(Math.max(1, parseInt(daysInput.value||14)), maxPoints);
+  const view = viewSelect.value;
+  ensureLoadSelected().then(()=>{
+    const { labels, series } = buildDatasets(days, view);
+    const datasets = series.map(s=>({...s}));
+    createChart(labels, datasets);
+    updateStats(days, view);
+  });
+}
+
+// CSV export for current chart
+function exportCSV(){
+  if(!chart) return alert('No data');
+  const labels = chart.data.labels;
+  const rows = [ ['date', ...chart.data.datasets.map(ds=>ds.label)] ];
+  for(let i=0;i<labels.length;i++){
+    const row = [labels[i]];
+    for(const ds of chart.data.datasets){
+      row.push(ds.data[i] ?? '');
+    }
+    rows.push(row);
+  }
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `rates_export_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// dark toggle
+darkToggle.addEventListener('click', ()=>{
+  document.documentElement.classList.toggle('bitlab-custom-class-dark');
+});
+
+// events
+daysInput.addEventListener('change', updateChart);
+viewSelect.addEventListener('change', updateChart);
+exportCsvBtn.addEventListener('click', exportCSV);
+
+// initialize
+loadManifest();
+</script>
 </body>
 </html>
