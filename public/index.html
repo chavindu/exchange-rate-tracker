@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exchange Rate Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        #rangeInput { width: 80px; }
+    </style>
+</head>
+<body>
+
+<h2>USD / GBP – TTBUY Trend</h2>
+
+<label>Show last (days):</label>
+<input type="number" id="rangeInput" value="14" min="1" max="365">
+<button onclick="loadChart()">Update</button>
+
+<canvas id="chart" width="600" height="300"></canvas>
+
+<script>
+async function loadJSON(currency) {
+    const res = await fetch(`data/${currency}.json?cache=${Math.random()}`);
+    return await res.json();
+}
+
+async function loadChart() {
+    const days = parseInt(document.getElementById("rangeInput").value);
+
+    const usd = await loadJSON("usd");
+    const gbp = await loadJSON("gbp");
+
+    const filteredUSD = usd.slice(-days);
+    const filteredGBP = gbp.slice(-days);
+
+    const labels = filteredUSD.map(x => x.date);
+
+    const ctx = document.getElementById("chart").getContext("2d");
+    if (window.chartInstance) window.chartInstance.destroy();
+
+    window.chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: "USD TTBUY",
+                    data: filteredUSD.map(x => x.value),
+                    borderWidth: 2
+                },
+                {
+                    label: "GBP TTBUY",
+                    data: filteredGBP.map(x => x.value),
+                    borderWidth: 2
+                }
+            ]
+        }
+    });
+}
+
+loadChart();
+</script>
+
+</body>
+</html>
