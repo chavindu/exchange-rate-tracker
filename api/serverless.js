@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return res.status(401).send("Unauthorized");
   }
 
-  const API_URL = "https://www.sampath.lk/api/exchange-rates";
+  const API_URL = "https://sampath-proxy.chavindu-cloudflare.workers.dev/";
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || "main";
   const token = process.env.GITHUB_TOKEN;
