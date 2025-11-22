@@ -1,7 +1,21 @@
 import fetch from "node-fetch";
 
+// ---------------------
+// Get public IP of Vercel serverless
+// ---------------------
+async function getServerIP() {
+  try {
+    const r = await fetch("https://api64.ipify.org?format=json");
+    const j = await r.json();
+    return j.ip;
+  } catch (e) {
+    console.error("IP lookup failed", e);
+    return "unknown";
+  }
+}
+
 export default async function handler(req, res) {
-  // Cron auth
+  // Cron security
   if (
     process.env.CRON_SECRET &&
     req.headers["authorization"] !== `Bearer ${process.env.CRON_SECRET}`
@@ -14,19 +28,29 @@ export default async function handler(req, res) {
   const branch = process.env.GITHUB_BRANCH || "main";
   const token = process.env.GITHUB_TOKEN;
 
-  // 1. Fetch data
+  console.log("Cron triggered...");
+
+  // Fetch Sampath API
   const response = await fetch(API_URL);
   const text = await response.text();
 
-// If the API returns HTML → fail safely
-if (text.trim().startsWith("<")) {
-  console.error("ERROR: Sampath API returned HTML instead of JSON");
-  console.error(text.slice(0, 200)); // print first 200 chars
-  return res.status(500).json({ error: "Invalid API response" });
-}
+  // Detect HTML / blocked response
+  const serverIP = await getServerIP();
 
-const json = JSON.parse(text);
+  if (text.trim().startsWith("<")) {
+    console.error("ERROR: Sampath API returned HTML instead of JSON");
+    console.error("Server Public IP:", serverIP);
+    console.error(text.slice(0, 200));
 
+    return res.status(500).json({
+      success: false,
+      error: "Invalid API response",
+      serverIP
+    });
+  }
+
+  // Parse valid JSON
+  const json = JSON.parse(text);
   const data = json.data;
 
   const usd = data.find(x => x.CurrCode === "USD").TTBUY;
@@ -34,7 +58,7 @@ const json = JSON.parse(text);
 
   const today = new Date().toISOString().split("T")[0];
 
-  // 2. Load existing history files from GitHub
+  // Load GitHub file
   async function loadFile(path) {
     const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -46,7 +70,7 @@ const json = JSON.parse(text);
     };
   }
 
-  // 3. Update file content
+  // Update file
   async function updateFile(path, history, sha) {
     const content = Buffer.from(JSON.stringify(history, null, 4)).toString("base64");
 
@@ -65,19 +89,22 @@ const json = JSON.parse(text);
     });
   }
 
-  // USD
+  // Update USD
   const usdFile = await loadFile("public/data/usd.json");
   if (!usdFile.json.find(e => e.date === today)) {
     usdFile.json.push({ date: today, value: usd });
     await updateFile("public/data/usd.json", usdFile.json, usdFile.sha);
   }
 
-  // GBP
+  // Update GBP
   const gbpFile = await loadFile("public/data/gbp.json");
   if (!gbpFile.json.find(e => e.date === today)) {
     gbpFile.json.push({ date: today, value: gbp });
     await updateFile("public/data/gbp.json", gbpFile.json, gbpFile.sha);
   }
 
-  res.json({ success: true });
+  return res.json({
+    success: true,
+    serverIP
+  });
 }
