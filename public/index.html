@@ -256,6 +256,14 @@ html,body{
   flex-direction: column;
 }
 
+.bitlab-custom-class-main-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
+}
+
 /* currency list */
 .bitlab-custom-class-currency-section {
   margin-bottom: 20px;
@@ -347,7 +355,24 @@ html,body{
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 20px;
+  overflow-y: auto;
+  max-height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+  padding-right: 8px;
+}
+
+.bitlab-custom-class-stats::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bitlab-custom-class-stats::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bitlab-custom-class-stats::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
 }
 
 .bitlab-custom-class-statcard{
@@ -418,14 +443,13 @@ html,body{
 
 /* chart container */
 .bitlab-custom-class-chartwrap{
-  height: 420px;
+  height: 100%;
+  min-height: 420px;
   padding: 20px;
   border-radius: 12px;
   background: rgba(255,255,255,0.5);
   box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
   border: 1px solid rgba(0,0,0,0.05);
-  flex: 1;
-  min-height: 420px;
 }
 
 /* legend */
@@ -469,6 +493,11 @@ a.bitlab-custom-class-link:hover {
     grid-template-columns: 1fr;
   }
   
+  .bitlab-custom-class-main-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
   .bitlab-custom-class-side {
     max-height: none;
     order: 2;
@@ -481,6 +510,10 @@ a.bitlab-custom-class-link:hover {
   .bitlab-custom-class-chartwrap {
     height: 360px;
     min-height: 360px;
+  }
+  
+  .bitlab-custom-class-stats {
+    max-height: none;
   }
 }
 
@@ -526,10 +559,19 @@ a.bitlab-custom-class-link:hover {
     padding: 20px;
   }
   
+  .bitlab-custom-class-main-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
   .bitlab-custom-class-chartwrap {
     height: 320px;
     min-height: 320px;
     padding: 16px;
+  }
+  
+  .bitlab-custom-class-stats {
+    max-height: none;
   }
   
   .bitlab-custom-class-footer {
@@ -587,10 +629,19 @@ a.bitlab-custom-class-link:hover {
     padding: 16px;
   }
   
+  .bitlab-custom-class-main-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
   .bitlab-custom-class-chartwrap {
     height: 280px;
     min-height: 280px;
     padding: 12px;
+  }
+  
+  .bitlab-custom-class-stats {
+    max-height: none;
   }
   
   .bitlab-custom-class-currency {
@@ -674,8 +725,6 @@ a.bitlab-custom-class-link:hover {
         <div id="currencyList"></div>
       </div>
 
-      <div class="bitlab-custom-class-stats" id="statsArea" aria-live="polite"></div>
-
       <div class="bitlab-custom-class-legend">
         <div class="bitlab-custom-class-legend-title">Legend</div>
         <div class="bitlab-custom-class-legend-text">↑ increasing · ↓ decreasing · → unchanged</div>
@@ -683,8 +732,12 @@ a.bitlab-custom-class-link:hover {
     </div>
 
     <div class="bitlab-custom-class-main">
-      <div class="bitlab-custom-class-chartwrap">
-        <canvas id="rateChart" height="360"></canvas>
+      <div class="bitlab-custom-class-main-content">
+        <div class="bitlab-custom-class-chartwrap">
+          <canvas id="rateChart" height="360"></canvas>
+        </div>
+
+        <div class="bitlab-custom-class-stats" id="statsArea" aria-live="polite"></div>
       </div>
 
       <div class="bitlab-custom-class-footer">
