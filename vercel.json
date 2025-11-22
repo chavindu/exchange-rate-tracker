@@ -1,11 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "public/**/*", "use": "@vercel/static" },
-    { "src": "api/serverless.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/serverless.js" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+  "crons": [
+    {
+      "path": "/api/serverless",
+      "schedule": "0 0 * * *"
+    }
   ]
 }
