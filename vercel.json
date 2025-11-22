@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "functions": {
-    "api/serverless.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "builds": [
+    { "src": "public/**/*", "use": "@vercel/static" },
+    { "src": "api/serverless.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/serverless.js" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
 }
