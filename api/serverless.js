@@ -16,7 +16,17 @@ export default async function handler(req, res) {
 
   // 1. Fetch data
   const response = await fetch(API_URL);
-  const json = await response.json();
+  const text = await response.text();
+
+// If the API returns HTML → fail safely
+if (text.trim().startsWith("<")) {
+  console.error("ERROR: Sampath API returned HTML instead of JSON");
+  console.error(text.slice(0, 200)); // print first 200 chars
+  return res.status(500).json({ error: "Invalid API response" });
+}
+
+const json = JSON.parse(text);
+
   const data = json.data;
 
   const usd = data.find(x => x.CurrCode === "USD").TTBUY;
