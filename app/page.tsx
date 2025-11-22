@@ -138,12 +138,13 @@ export default function Home() {
   }
 
   const exportCSV = () => {
-    const selectedWithData = selected.filter((code) => {
+    // Include all currencies from manifest that have data
+    const allCurrenciesWithData = manifest.filter((code) => {
       const arr = dataCache[code] || []
       return arr.length > 0
     })
 
-    if (selectedWithData.length === 0) {
+    if (allCurrenciesWithData.length === 0) {
       alert('No data to export')
       return
     }
@@ -174,16 +175,16 @@ export default function Home() {
     }
 
     const labelsSet = new Set<string>()
-    selectedWithData.forEach((code) => {
+    allCurrenciesWithData.forEach((code) => {
       const arr = getRange(dataCache[code] || [], days, view, rateType)
       arr.forEach((r) => labelsSet.add(r.date))
     })
     const labels = Array.from(labelsSet).sort()
 
-    const rows: (string | number)[][] = [['date', ...selectedWithData]]
+    const rows: (string | number)[][] = [['date', ...allCurrenciesWithData]]
     labels.forEach((label) => {
       const row: (string | number)[] = [label]
-      selectedWithData.forEach((code) => {
+      allCurrenciesWithData.forEach((code) => {
         const arr = getRange(dataCache[code] || [], days, view, rateType)
         const map = new Map(arr.map((x) => {
           const rateValue = getRateValue(x, rateType)
