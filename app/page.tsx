@@ -199,7 +199,9 @@ export default function Home() {
     <div className="app">
       <div className="top">
         <div className="brand">
-          <div className="logo">BL</div>
+          <div className="logo">
+            <img src="/img/sampath-logo.png" alt="Sampath Bank" className="logoImage" />
+          </div>
           <div>
             <div className="title">Exchange Rate Dashboard</div>
             <div className="sub">

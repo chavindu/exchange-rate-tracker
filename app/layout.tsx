@@ -6,8 +6,17 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Exchange Rate Dashboard — BitLab',
+  title: 'Exchange Rate Dashboard — Sampath Bank',
   description: 'Track TTBUY exchange rates from Sampath Bank',
+  icons: {
+    icon: [
+      { url: '/img/sampath-logo.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/img/sampath-logo.png', type: 'image/png' },
+    ],
+    shortcut: '/img/sampath-logo.png',
+  },
 }
 
 export default function RootLayout({
