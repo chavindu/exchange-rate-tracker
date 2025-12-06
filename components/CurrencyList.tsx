@@ -66,7 +66,7 @@ export function CurrencyList({ currencies, selected, onToggle, lastValues, rateT
                   src={flagsMap[code]} 
                   alt={code} 
                   className="currencyFlag"
-                  style={{ width: '24px', height: '32px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }}
+                  style={{ width: '24px', height: '32px', objectFit: 'contain', borderRadius: '2px', flexShrink: 0 }}
                 />
               )}
               <div className="currencyText">
