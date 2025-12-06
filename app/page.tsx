@@ -259,7 +259,7 @@ export default function Home() {
               value={view}
               onChange={(e) => setView(e.target.value as 'days' | 'monthly')}
             >
-              <option value="days">Last N days</option>
+              <option value="days">Last {days} days</option>
               <option value="monthly">Monthly</option>
             </select>
           </div>
