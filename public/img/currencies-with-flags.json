@@ -297,7 +297,8 @@
         "code": "EUR",
         "name": "Euro",
         "country": "European Union",
-        "countryCode": "eu"
+        "countryCode": "eu",
+        "flag": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACCklEQVR4AeyTSyh0YRjH/8fo6/s2+r4+bCgbWbBkykYolw1SFpKysZAoTMml3ItIg4WQbKzYoGQhlMmGUEopl1I0Fi6xtJhmzP/NNDOnc2aek1wWM533fd7n//ye5/x7mxOHb/7FDMRu4AfdQPacD1+9/F/gD7oBvxvpY9O8Cq22H+J6uAuMFAI6z9Jl+Qb6y9dxN96OxgIXlg/tSPv3rCJz6qxLX07OsgH3y1/8ifdgZjef/YhrnFWROXXWlSDcxAZKMs8Qb/Nifi8PCS1ThuOps06OvCGkE8UG1puncT7Yq2s3TsmRN66Gq2IDtQv16F6tDO82yciRNymHyWIDp+4ULB/lhDWbJeTIm9VDdZGBpwkHTvsGoGm+0F7TMzny7DOF3gsiA0sHdvSsVcDn097bIgdy5NkXmQREBpqWarB1loVfNk+0eapOjjz7lBBhExlIT7rHQdcI3GOdEUYFS+TIsy+oGp9EBq4ekrG4n4uT21Q1JeH3q4r6LaCTI88+PaPPRQbYVL9Yh+LJVoxVreBmtBOO4m3K6CjdVJE5ddbJkVeFKJvYQGDO9eN/eLwanFtF2GlzYqRyVUXm1FkPsJJo2cCMKx+JbRNq9tBGGVyXGWCkQJ11nqXLsoHQwbsXGSh0OsAYqls5f8iAlReZsUEDxw0avnr5XQUN+JPveGIGYjfw6TcQ7Y/9BgAA//+MPwwhAAAABklEQVQDAClX9UFqu9cRAAAAAElFTkSuQmCC"
     },
     {
         "code": "FJD",

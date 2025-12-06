@@ -61,18 +61,18 @@ export function CurrencyList({ currencies, selected, onToggle, lastValues, rateT
             onClick={() => onToggle(code)}
           >
             <div className="currencyInfo">
-              <div className="code">
-                {flagsMap[code] && (
-                  <img 
-                    src={flagsMap[code]} 
-                    alt={code} 
-                    className="currencyFlag"
-                    style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }}
-                  />
-                )}
-                {code}
+              {flagsMap[code] && (
+                <img 
+                  src={flagsMap[code]} 
+                  alt={code} 
+                  className="currencyFlag"
+                  style={{ width: '24px', height: '32px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }}
+                />
+              )}
+              <div className="currencyText">
+                <div className="code">{code}</div>
+                <div className="small">{rateTypeLabels[rateType]}</div>
               </div>
-              <div className="small">{rateTypeLabels[rateType]}</div>
             </div>
             <div className="currencyValue">{fmt(lastValues[code])}</div>
           </div>
