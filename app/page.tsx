@@ -110,7 +110,7 @@ export default function Home() {
       setManifest(currencies)
       await ensureData(currencies)
       updateAllLastValues(currencies)
-      const defaultSelected = currencies.slice(0, 2)
+      const defaultSelected = ['GBP']
       setSelected(defaultSelected)
     } catch (e) {
       console.error('Failed to load manifest:', e)
@@ -118,7 +118,7 @@ export default function Home() {
       setManifest(fallback)
       await ensureData(fallback)
       updateAllLastValues(fallback)
-      setSelected(fallback)
+      setSelected(['GBP'])
     }
   }
 
