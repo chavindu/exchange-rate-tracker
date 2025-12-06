@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { CurrencyList } from '@/components/CurrencyList'
 import { StatsCards } from '@/components/StatsCards'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { RateCalculator } from '@/components/RateCalculator'
 import { RateData, RateType } from '@/types'
 
 // Dynamically import Chart component to avoid SSR issues
@@ -30,6 +31,7 @@ export default function Home() {
   const [view, setView] = useState<'days' | 'monthly'>('days')
   const [rateType, setRateType] = useState<RateType>('TTBUY')
   const [lastValues, setLastValues] = useState<{ [key: string]: number | null }>({})
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
 
   const parseNum = (v: number | string) => {
     if (typeof v === 'string') return parseFloat(v.replace(/,/g, ''))
@@ -278,6 +280,9 @@ export default function Home() {
               <option value="TTSEL">T/T Selling</option>
             </select>
           </div>
+          <button className="btn" onClick={() => setIsCalculatorOpen(true)}>
+            Rate Calculator
+          </button>
           <button className="btn" onClick={exportCSV}>
             Export CSV
           </button>
@@ -317,6 +322,15 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <RateCalculator
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        currencies={manifest}
+        lastValues={lastValues}
+        rateType={rateType}
+        dataCache={dataCache}
+      />
     </div>
   )
 }
