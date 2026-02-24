@@ -23,12 +23,24 @@ const ExchangeChart = dynamic(() => import('@/components/ExchangeChart').then(mo
 const manifestPath = '/data/manifest.json'
 const maxPoints = 365
 
+const RANGE_PRESETS = [
+  { value: '7d', label: '7 days', days: 7, view: 'days' as const },
+  { value: '14d', label: '14 days', days: 14, view: 'days' as const },
+  { value: '30d', label: '30 days', days: 30, view: 'days' as const },
+  { value: '2m', label: '2 months', days: 2, view: 'monthly' as const },
+  { value: '3m', label: '3 months', days: 3, view: 'monthly' as const },
+  { value: '6m', label: '6 months', days: 6, view: 'monthly' as const },
+  { value: '1y', label: '1 year', days: 12, view: 'monthly' as const },
+] as const
+
 export default function Home() {
   const [manifest, setManifest] = useState<string[]>([])
   const [dataCache, setDataCache] = useState<{ [key: string]: RateData[] }>({})
   const [selected, setSelected] = useState<string[]>([])
-  const [days, setDays] = useState(14)
-  const [view, setView] = useState<'days' | 'monthly'>('days')
+  const [rangePreset, setRangePreset] = useState<string>('14d')
+  const preset = RANGE_PRESETS.find((p) => p.value === rangePreset) ?? RANGE_PRESETS[1]
+  const days = preset.days
+  const view = preset.view
   const [rateType, setRateType] = useState<RateType>('TTBUY')
   const [lastValues, setLastValues] = useState<{ [key: string]: number | null }>({})
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
@@ -238,31 +250,20 @@ export default function Home() {
 
         <div className="controls">
           <div className="controlGroup">
-            <label className="small" htmlFor="daysInput">
-              Days
-            </label>
-            <input
-              id="daysInput"
-              className="input"
-              type="number"
-              min="1"
-              max="365"
-              value={days}
-              onChange={(e) => setDays(Math.min(Math.max(1, parseInt(e.target.value) || 14), maxPoints))}
-            />
-          </div>
-          <div className="controlGroup">
             <label className="small" htmlFor="viewSelect">
               View
             </label>
             <select
               id="viewSelect"
               className="input"
-              value={view}
-              onChange={(e) => setView(e.target.value as 'days' | 'monthly')}
+              value={rangePreset}
+              onChange={(e) => setRangePreset(e.target.value)}
             >
-              <option value="days">Last {days} days</option>
-              <option value="monthly">Monthly</option>
+              {RANGE_PRESETS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="controlGroup">

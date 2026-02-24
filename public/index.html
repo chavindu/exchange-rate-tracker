@@ -703,14 +703,15 @@ a.bitlab-custom-class-link:hover {
 
     <div class="bitlab-custom-class-controls">
       <div class="bitlab-custom-class-control-group">
-        <label class="bitlab-custom-class-small" for="daysInput">Days</label>
-        <input id="daysInput" class="bitlab-custom-class-input" type="number" min="1" max="365" value="14">
-      </div>
-      <div class="bitlab-custom-class-control-group">
         <label class="bitlab-custom-class-small" for="viewSelect">View</label>
         <select id="viewSelect" class="bitlab-custom-class-input">
-          <option value="days">Last N days</option>
-          <option value="monthly">Monthly</option>
+          <option value="7d">7 days</option>
+          <option value="14d" selected>14 days</option>
+          <option value="30d">30 days</option>
+          <option value="2m">2 months</option>
+          <option value="3m">3 months</option>
+          <option value="6m">6 months</option>
+          <option value="1y">1 year</option>
         </select>
       </div>
       <button id="exportCsv" class="bitlab-custom-class-btn">Export CSV</button>
@@ -756,8 +757,16 @@ const manifestPath = 'data/manifest.json';
 const maxPoints = 365;
 
 // DOM
+const RANGE_PRESETS = {
+  '7d': { days: 7, view: 'days' },
+  '14d': { days: 14, view: 'days' },
+  '30d': { days: 30, view: 'days' },
+  '2m': { days: 2, view: 'monthly' },
+  '3m': { days: 3, view: 'monthly' },
+  '6m': { days: 6, view: 'monthly' },
+  '1y': { days: 12, view: 'monthly' }
+};
 const currencyList = document.getElementById('currencyList');
-const daysInput = document.getElementById('daysInput');
 const viewSelect = document.getElementById('viewSelect');
 const exportCsvBtn = document.getElementById('exportCsv');
 const darkToggle = document.getElementById('darkToggle');
@@ -1098,8 +1107,9 @@ function createChart(labels, series){
 }
 
 function updateAll(){
-  const days = Math.min(Math.max(1,parseInt(daysInput.value||14)), maxPoints);
-  const view = viewSelect.value;
+  const preset = RANGE_PRESETS[viewSelect.value] || RANGE_PRESETS['14d'];
+  const days = preset.days;
+  const view = preset.view;
   ensureData(selected).then(()=>{
     const {labels, series} = buildDatasets(days, view);
     createChart(labels, series);
@@ -1123,7 +1133,6 @@ function exportCSV(){
 }
 
 // events
-daysInput.addEventListener('change', updateAll);
 viewSelect.addEventListener('change', updateAll);
 exportCsvBtn.addEventListener('click', exportCSV);
 darkToggle.addEventListener('click', ()=> {
