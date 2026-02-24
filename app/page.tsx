@@ -27,10 +27,10 @@ const RANGE_PRESETS = [
   { value: '7d', label: '7 days', days: 7, view: 'days' as const },
   { value: '14d', label: '14 days', days: 14, view: 'days' as const },
   { value: '30d', label: '30 days', days: 30, view: 'days' as const },
-  { value: '2m', label: '2 months', days: 2, view: 'monthly' as const },
-  { value: '3m', label: '3 months', days: 3, view: 'monthly' as const },
-  { value: '6m', label: '6 months', days: 6, view: 'monthly' as const },
-  { value: '1y', label: '1 year', days: 12, view: 'monthly' as const },
+  { value: '2m', label: '2 months', days: 60, view: 'days' as const },
+  { value: '3m', label: '3 months', days: 90, view: 'days' as const },
+  { value: '6m', label: '6 months', days: 180, view: 'days' as const },
+  { value: '1y', label: '1 year', days: 365, view: 'days' as const },
 ] as const
 
 export default function Home() {

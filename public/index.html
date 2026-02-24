@@ -761,10 +761,10 @@ const RANGE_PRESETS = {
   '7d': { days: 7, view: 'days' },
   '14d': { days: 14, view: 'days' },
   '30d': { days: 30, view: 'days' },
-  '2m': { days: 2, view: 'monthly' },
-  '3m': { days: 3, view: 'monthly' },
-  '6m': { days: 6, view: 'monthly' },
-  '1y': { days: 12, view: 'monthly' }
+  '2m': { days: 60, view: 'days' },
+  '3m': { days: 90, view: 'days' },
+  '6m': { days: 180, view: 'days' },
+  '1y': { days: 365, view: 'days' }
 };
 const currencyList = document.getElementById('currencyList');
 const viewSelect = document.getElementById('viewSelect');
