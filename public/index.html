@@ -741,7 +741,7 @@ a.bitlab-custom-class-link:hover {
       </div>
 
       <div class="bitlab-custom-class-footer">
-        <div>Developed by Chavindu Nuwanpriya © 2025</div>
+        <div>Developed by Chavindu Nuwanpriya © <span id="footer-year"></span></div>
         <div class="bitlab-custom-class-small">Data source: <a class="bitlab-custom-class-link" href="https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates" target="_blank" rel="noopener">sampath.lk</a></div>
       </div>
     </div>
@@ -762,6 +762,10 @@ const viewSelect = document.getElementById('viewSelect');
 const exportCsvBtn = document.getElementById('exportCsv');
 const darkToggle = document.getElementById('darkToggle');
 const statsArea = document.getElementById('statsArea');
+
+// Auto-update footer year
+const footerYear = document.getElementById('footer-year');
+if (footerYear) footerYear.textContent = new Date().getFullYear();
 
 let manifest = [];
 let dataCache = {};

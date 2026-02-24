@@ -307,7 +307,7 @@ export default function Home() {
           </div>
 
           <div className="footer">
-            <div>Developed by Chavindu Nuwanpriya © 2025</div>
+            <div>Developed by Chavindu Nuwanpriya © {new Date().getFullYear()}</div>
             <div className="small">
               Data source:{' '}
               <a
