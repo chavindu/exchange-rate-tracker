@@ -15,7 +15,13 @@ async function getServerIP() {
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const force = ['1', 'true', 'yes'].includes((url.searchParams.get('force') || '').toLowerCase())
+  const forceQuery = ['1', 'true', 'yes'].includes((url.searchParams.get('force') || '').toLowerCase())
+
+  // Treat calls at the scheduled cron time (03:30 UTC) as "normal" idempotent runs.
+  // Any other time is considered a manual run and will force overwrite today's values.
+  const now = new Date()
+  const isScheduledTime = now.getUTCHours() === 3 && now.getUTCMinutes() === 30
+  const force = forceQuery || !isScheduledTime
 
   // Cron security
   const authHeader = request.headers.get('authorization')
