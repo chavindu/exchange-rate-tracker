@@ -17,7 +17,7 @@ A web application that tracks TTBUY (Telegraphic Transfer Buying) exchange rates
 ## Architecture
 
 ### Backend
-- **Serverless Function**: Vercel serverless function (`api/serverless.js`) that runs daily at midnight UTC
+- **Serverless Function**: Vercel serverless function (`api/serverless.js`) that runs daily at 03:30 UTC (09:00 IST)
 - **Data Source**: Fetches rates from Sampath Bank API via proxy (`https://sampath-proxy.chavindu-cloudflare.workers.dev/`)
 - **Storage**: Updates JSON files in GitHub repository via GitHub API
 - **Security**: Optional CRON_SECRET for authentication
@@ -82,11 +82,11 @@ vercel deploy
 
 4. Configure environment variables in Vercel dashboard
 
-5. The cron job will automatically run daily at midnight UTC
+5. The cron job will automatically run daily at 03:30 UTC (09:00 IST)
 
 ## How It Works
 
-1. **Daily Cron Job**: Vercel triggers the serverless function daily at 00:00 UTC
+1. **Daily Cron Job**: Vercel triggers the serverless function daily at 03:30 UTC (09:00 IST)
 2. **Manifest Loading**: The function loads `public/data/manifest.json` to determine which currencies to track
 3. **Rate Fetching**: The function fetches current exchange rates from Sampath Bank API
 4. **Data Update**: For each currency in the manifest, if today's rate doesn't exist, it appends the new rate to the respective JSON file

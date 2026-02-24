@@ -14,6 +14,9 @@ async function getServerIP() {
 }
 
 export async function GET(request: Request) {
+  const url = new URL(request.url)
+  const force = ['1', 'true', 'yes'].includes((url.searchParams.get('force') || '').toLowerCase())
+
   // Cron security
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
@@ -27,7 +30,7 @@ export async function GET(request: Request) {
   const branch = process.env.GITHUB_BRANCH || 'main'
   const token = process.env.GITHUB_TOKEN
 
-  console.log('Cron triggered...')
+  console.log(`Cron triggered...${force ? ' (force overwrite enabled)' : ''}`)
 
   // Fetch Sampath API
   const response = await fetch(API_URL)
@@ -70,11 +73,11 @@ export async function GET(request: Request) {
   }
 
   // Update or create file
-  async function updateFile(path: string, history: any[], sha: string | null) {
+  async function updateFile(path: string, history: any[], sha: string | null, message?: string) {
     const content = Buffer.from(JSON.stringify(history, null, 4)).toString('base64')
 
     const body: any = {
-      message: `Daily update ${path} (${today})`,
+      message: message || `Daily update ${path} (${today})`,
       content,
       branch,
     }
@@ -130,7 +133,9 @@ export async function GET(request: Request) {
       }
 
       // Check if today's entry already exists
-      if (!fileData.json.find((e: any) => e.date === today)) {
+      const existingIndex = fileData.json.findIndex((e: any) => e.date === today)
+
+      if (existingIndex === -1) {
         fileData.json.push({
           date: today,
           TTBUY: ttbuy,
@@ -142,6 +147,18 @@ export async function GET(request: Request) {
         await updateFile(filePath, fileData.json, fileData.sha)
         console.log(`Updated ${currencyCode}: TTBUY=${ttbuy}, ODBUY=${odbuy}, TTSEL=${ttsel}`)
         results.push({ currency: currencyCode, success: true, ttbuy, odbuy, ttsel })
+      } else if (force) {
+        fileData.json[existingIndex] = {
+          ...fileData.json[existingIndex],
+          date: today,
+          TTBUY: ttbuy,
+          ODBUY: odbuy,
+          TTSEL: ttsel,
+        }
+
+        await updateFile(filePath, fileData.json, fileData.sha, `Force overwrite ${filePath} (${today})`)
+        console.log(`Overwrote ${currencyCode}: TTBUY=${ttbuy}, ODBUY=${odbuy}, TTSEL=${ttsel}`)
+        results.push({ currency: currencyCode, success: true, overwritten: true, ttbuy, odbuy, ttsel })
       } else {
         console.log(`${currencyCode} already has entry for ${today}`)
         results.push({ currency: currencyCode, success: true, skipped: true })
@@ -155,7 +172,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     success: true,
     serverIP,
-    currenciesUpdated: results.filter((r) => r.success && !r.skipped).length,
+    currenciesUpdated: results.filter((r) => r.success && (r.overwritten || !r.skipped)).length,
     currenciesSkipped: results.filter((r) => r.skipped).length,
     currenciesFailed: results.filter((r) => !r.success).length,
     results,
