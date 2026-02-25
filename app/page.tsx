@@ -44,6 +44,7 @@ export default function Home() {
   const [rateType, setRateType] = useState<RateType>('TTBUY')
   const [lastValues, setLastValues] = useState<{ [key: string]: number | null }>({})
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
   const parseNum = (v: number | string) => {
     if (typeof v === 'string') return parseFloat(v.replace(/,/g, ''))
@@ -133,6 +134,15 @@ export default function Home() {
       await ensureData(fallback)
       updateAllLastValues(fallback)
       setSelected(['GBP'])
+    }
+    try {
+      const ru = await fetch('/data/last-updated.json')
+      if (ru.ok) {
+        const { updatedAt } = await ru.json()
+        if (updatedAt) setLastUpdated(updatedAt)
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -319,6 +329,14 @@ export default function Home() {
               >
                 sampath.lk
               </a>
+              {lastUpdated && (
+                <span style={{ marginLeft: '0.5rem', color: 'var(--muted)' }}>
+                  · Last updated {new Date(lastUpdated).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // Update or create file
+  // Update or create file (array of rate entries)
   async function updateFile(path: string, history: any[], sha: string | null, message?: string) {
     const content = Buffer.from(JSON.stringify(history, null, 4)).toString('base64')
 
@@ -88,11 +88,23 @@ export async function GET(request: Request) {
       branch,
     }
 
-    // Only include sha if file exists (for updates)
-    if (sha) {
-      body.sha = sha
-    }
+    if (sha) body.sha = sha
 
+    await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+  }
+
+  // Write arbitrary JSON file (e.g. last-updated.json)
+  async function putJsonFile(path: string, obj: object, sha: string | null, message: string) {
+    const content = Buffer.from(JSON.stringify(obj, null, 2)).toString('base64')
+    const body: any = { message, content, branch }
+    if (sha) body.sha = sha
     await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
       method: 'PUT',
       headers: {
@@ -173,6 +185,28 @@ export async function GET(request: Request) {
       console.error(`Error updating ${currencyCode}:`, e)
       results.push({ currency: currencyCode, success: false, error: e.message })
     }
+  }
+
+  // Write last cron run timestamp for footer
+  const lastUpdatedPath = 'public/data/last-updated.json'
+  const updatedAt = new Date().toISOString()
+  try {
+    let lastUpdatedSha: string | null = null
+    try {
+      const existing = await loadFile(lastUpdatedPath)
+      lastUpdatedSha = existing.sha
+    } catch {
+      // file does not exist yet
+    }
+    await putJsonFile(
+      lastUpdatedPath,
+      { updatedAt },
+      lastUpdatedSha,
+      `Cron run ${today} at ${updatedAt}`
+    )
+    console.log('Updated last-updated.json:', updatedAt)
+  } catch (e) {
+    console.warn('Failed to update last-updated.json', e)
   }
 
   return NextResponse.json({
